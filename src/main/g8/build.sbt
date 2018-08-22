@@ -7,13 +7,13 @@ import com.typesafe.sbt.packager.docker._
 lazy val root = project.in(file("."))
   .aggregate(model, transformer)
   .settings(
-    name := "$name$",
+    name := "$name;format="norm"$",
     skip in publish := true
   )
 
 lazy val model =
   project
-    .in(file("$deviceType$"))
+    .in(file("$deviceType;format="norm"$"))
     .enablePlugins(AutomateHeaderPlugin, GitVersioning, GitBranchPrompt)
     .settings(settings)
     .settings(
@@ -28,7 +28,7 @@ lazy val model =
 
 lazy val transformer =
   project
-    .in(file("$deviceType$-transformer"))
+    .in(file("$deviceType;format="norm"$-transformer"))
     .enablePlugins(AutomateHeaderPlugin, DockerPlugin, GitVersioning, GitBranchPrompt)
     .dependsOn(model)
     .settings(settings)
@@ -51,7 +51,7 @@ lazy val transformer =
         mappings in Docker := assembly.value.pair(Path.flatRebase("/opt/docker/lib")),
         dockerCommands := Seq(
           Cmd("FROM", image.ioxLandlord),
-          Cmd("LABEL", s"""cisco.info.name=${name.value.replaceAll("-", "")}"""),
+          Cmd("LABEL", s"""cisco.info.name=\${name.value.replaceAll("-", "")}"""),
           Cmd("COPY", "opt/docker", "/opt/docker"),
           ExecCmd("CMD", "/opt/docker/bin/start", (mainClass in Compile).value.getOrElse(""))
         )
@@ -68,7 +68,7 @@ lazy val image =
       val ioxLandlord = "0.15.0"
     }
 
-    val ioxLandlord = s"farmco/iox-landlord:${Version.ioxLandlord}"
+    val ioxLandlord = s"farmco/iox-landlord:\${Version.ioxLandlord}"
   }
 
 lazy val library =
@@ -105,7 +105,7 @@ lazy val settings =
 lazy val commonSettings =
   Seq(
     scalaVersion := "2.12.6",
-    organization := "$organization$",
+    organization := "$organization;format="package"$",
     organizationName := "$organizationName$",
     startYear := Some(2018),
     headerLicense := Some(HeaderLicense.Custom("Copyright (c) $organizationName$, 2018")),
