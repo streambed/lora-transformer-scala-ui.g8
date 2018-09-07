@@ -11,7 +11,7 @@ import com.github.huntc.streambed.durablequeue.DurableQueue
 import com.github.huntc.streambed.durablequeue.opentracing.Headers
 import com.github.huntc.streambed.identity.Principal
 import com.github.huntc.streambed.identity.streams.Streams
-import io.opentracing.{ Span, Tracer }
+import io.opentracing.{ References, Span, Tracer }
 import spray.json._
 
 /**
@@ -33,7 +33,6 @@ object $deviceType;format="Camel"$MetaFilter {
   def source(
       durableQueue: DurableQueue,
       getSecret: Principal.GetSecret,
-      instrumentation: $deviceType;format="Camel"$Instrumentation,
       tracer: Tracer
   )(implicit mat: Materializer): Source[Span, NotUsed] = {
     import mat.executionContext
@@ -43,11 +42,27 @@ object $deviceType;format="Camel"$MetaFilter {
         UuidOps.v5($deviceType;format="Camel"$MetaFilter.getClass),
         Flow[DurableQueue.Event]
           .named("$deviceType;format="norm"$-meta")
+          .log("$deviceType;format="norm"$-meta", identity)
           .map {
             case DurableQueue.Received(key, data, _, headers, _) => ((key, data), headers)
           }
           .map { case (data, headers) => (data, Headers.spanContext(headers, tracer)) }
-          .via(instrumentation.beginEventFilteringEvent)
+          .map {
+            case (received, spanContext) =>
+              val span = {
+                val scope =
+                  tracer
+                    .buildSpan("$deviceType;format="norm"$-event-filtering")
+                    .addReference(References.FOLLOWS_FROM, spanContext)
+                    .startActive(false)
+                try {
+                  scope.span()
+                } finally {
+                  scope.close()
+                }
+              }
+              received -> span
+          }
           .map {
             case ((nwkAddr, data), span) =>
               val path = EndDeviceEvents.EventKey + "." + HexString.intToHex(nwkAddr.toInt)
@@ -83,7 +98,7 @@ object $deviceType;format="Camel"$MetaFilter {
           }
           .via(durableQueue.flow)
           .collect { case DurableQueue.CommandReply(DurableQueue.SendAck, Some(span)) => span }
-          .via(instrumentation.endEventFilteringEvent)
+          .wireTap(span => tracer.scopeManager().activate(span, true).close())
       )
   }
 }

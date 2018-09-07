@@ -13,7 +13,7 @@ import com.github.huntc.streambed.durablequeue.DurableQueue
 import com.github.huntc.streambed.durablequeue.opentracing.Headers
 import com.github.huntc.streambed.identity.Principal
 import com.github.huntc.streambed.identity.streams.{ Streams => IdentityStreams }
-import io.opentracing.{ Span, Tracer }
+import io.opentracing.{ References, Span, Tracer }
 import spray.json._
 
 /**
@@ -36,20 +36,35 @@ object $deviceType;format="Camel"$Transformer {
   /**
     * Provides a source to perform the transformation.
     */
-  def source(durableQueue: DurableQueue,
-             getSecret: Principal.GetSecret,
-             instrumentation: $deviceType;format="Camel"$Instrumentation,
-             tracer: Tracer)(implicit mat: Materializer): Source[Span, NotUsed] = {
+  def source(durableQueue: DurableQueue, getSecret: Principal.GetSecret, tracer: Tracer)(
+      implicit mat: Materializer
+  ): Source[Span, NotUsed] = {
     import mat.executionContext
     durableQueue
       .resumableSource(
         $deviceType;format="Camel"$DataUpMacPayloadTopic,
         UuidOps.v5($deviceType;format="Camel"$MetaFilter.getClass),
         Flow[DurableQueue.Event]
-          .named("$deviceType;format="norm"$")
+          .named("$deviceType;format="norm"$-transformer")
+          .log("$deviceType;format="norm"$-transformer", identity)
           .map { case DurableQueue.Received(_, data, _, headers, _) => data -> headers }
           .map { case (data, headers) => data -> Headers.spanContext(headers, tracer) }
-          .via(instrumentation.beginTransformationEvent)
+          .map {
+            case (received, spanContext) =>
+              val span = {
+                val scope =
+                  tracer
+                    .buildSpan("$deviceType;format="norm"$-transformation")
+                    .addReference(References.FOLLOWS_FROM, spanContext)
+                    .startActive(false)
+                try {
+                  scope.span()
+                } finally {
+                  scope.close()
+                }
+              }
+              received -> span
+          }
           .via(LoRaStreams.dataUpDecoder(getSecret))
           .map {
             case ((nwkAddr, payload), span) =>
@@ -78,7 +93,7 @@ object $deviceType;format="Camel"$Transformer {
           }
           .via(durableQueue.flow)
           .collect { case DurableQueue.CommandReply(DurableQueue.SendAck, Some(span)) => span }
-          .via(instrumentation.endTransformationEvent)
+          .wireTap(span => tracer.scopeManager().activate(span, true).close())
       )
   }
 }
