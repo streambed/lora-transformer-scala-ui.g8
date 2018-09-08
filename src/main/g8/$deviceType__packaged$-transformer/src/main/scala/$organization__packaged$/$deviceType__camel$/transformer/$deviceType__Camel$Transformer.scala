@@ -40,60 +40,61 @@ object $deviceType;format="Camel"$Transformer {
       implicit mat: Materializer
   ): Source[Span, NotUsed] = {
     import mat.executionContext
+    val transform = Flow[DurableQueue.Event]
+      .named("$deviceType;format="norm"$-transformer")
+      .log("$deviceType;format="norm"$-transformer", identity)
+      .map { case DurableQueue.Received(_, data, _, headers, _) => data -> headers }
+      .map { case (data, headers) => data -> Headers.spanContext(headers, tracer) }
+      .map {
+        case (received, spanContext) =>
+          val span = {
+            val scope =
+              tracer
+                .buildSpan("$deviceType;format="norm"$-transformation")
+                .addReference(References.FOLLOWS_FROM, spanContext)
+                .startActive(false)
+            try {
+              scope.span()
+            } finally {
+              scope.close()
+            }
+          }
+          received -> span
+      }
+      .via(LoRaStreams.dataUpDecoder(getSecret))
+      .map {
+        case ((nwkAddr, payload), span) =>
+          ($deviceType;format="Camel"$Reading(Instant.now(), nwkAddr, payload.toArray), span)
+      }
+      .map {
+        case (reading, span) =>
+          import $deviceType;format="Camel"$ReadingJsonProtocol._
+          (reading.nwkAddr -> reading.toJson.compactPrint, span)
+      }
+      .map {
+        case ((nwkAddr, decryptedData), span) =>
+          ((getSecret($deviceType;format="Camel"$Reading.$deviceType;format="Camel"$Key), ByteString(decryptedData)),
+           (nwkAddr, span))
+      }
+      .via(IdentityStreams.encrypter)
+      .map {
+        case (encryptedData, (key, span)) =>
+          DurableQueue.CommandRequest(
+            DurableQueue.Send(key,
+                              encryptedData,
+                              $deviceType;format="Camel"$Reading.$deviceType;format="Camel"$DataUpJsonTopic,
+                              Headers.headers(span.context(), tracer)),
+            span
+          )
+      }
+      .via(durableQueue.flow)
+      .collect { case DurableQueue.CommandReply(DurableQueue.SendAck, Some(span)) => span }
+      .wireTap(span => tracer.scopeManager().activate(span, true).close())
     durableQueue
       .resumableSource(
         $deviceType;format="Camel"$DataUpMacPayloadTopic,
         UuidOps.v5($deviceType;format="Camel"$MetaFilter.getClass),
-        Flow[DurableQueue.Event]
-          .named("$deviceType;format="norm"$-transformer")
-          .log("$deviceType;format="norm"$-transformer", identity)
-          .map { case DurableQueue.Received(_, data, _, headers, _) => data -> headers }
-          .map { case (data, headers) => data -> Headers.spanContext(headers, tracer) }
-          .map {
-            case (received, spanContext) =>
-              val span = {
-                val scope =
-                  tracer
-                    .buildSpan("$deviceType;format="norm"$-transformation")
-                    .addReference(References.FOLLOWS_FROM, spanContext)
-                    .startActive(false)
-                try {
-                  scope.span()
-                } finally {
-                  scope.close()
-                }
-              }
-              received -> span
-          }
-          .via(LoRaStreams.dataUpDecoder(getSecret))
-          .map {
-            case ((nwkAddr, payload), span) =>
-              ($deviceType;format="Camel"$Reading(Instant.now(), nwkAddr, payload.toArray), span)
-          }
-          .map {
-            case (reading, span) =>
-              import $deviceType;format="Camel"$ReadingJsonProtocol._
-              (reading.nwkAddr -> reading.toJson.compactPrint, span)
-          }
-          .map {
-            case ((nwkAddr, decryptedData), span) =>
-              ((getSecret($deviceType;format="Camel"$Reading.$deviceType;format="Camel"$Key), ByteString(decryptedData)),
-               (nwkAddr, span))
-          }
-          .via(IdentityStreams.encrypter)
-          .map {
-            case (encryptedData, (key, span)) =>
-              DurableQueue.CommandRequest(
-                DurableQueue.Send(key,
-                                  encryptedData,
-                                  $deviceType;format="Camel"$Reading.$deviceType;format="Camel"$DataUpJsonTopic,
-                                  Headers.headers(span.context(), tracer)),
-                span
-              )
-          }
-          .via(durableQueue.flow)
-          .collect { case DurableQueue.CommandReply(DurableQueue.SendAck, Some(span)) => span }
-          .wireTap(span => tracer.scopeManager().activate(span, true).close())
+        transform
       )
   }
 }
