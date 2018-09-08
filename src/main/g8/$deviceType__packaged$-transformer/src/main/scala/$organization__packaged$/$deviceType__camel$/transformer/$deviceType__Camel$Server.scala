@@ -31,17 +31,16 @@ object $deviceType;format="Camel"$Server extends Application with DurableQueuePr
 
     import context._
 
-    val tracer          = TracerConfig.tracer(config)
-    val instrumentation = new $deviceType;format="Camel"$Instrumentation(tracer)
+    val tracer = TracerConfig.tracer(config)
 
     {
       val _ = $deviceType;format="Camel"$MetaFilter
-        .source(durableQueue, getSecret, instrumentation, tracer)
+        .source(durableQueue, getSecret, tracer)
         .runWith(Sink.ignore)
     }
     {
       val _ = $deviceType;format="Camel"$Transformer
-        .source(durableQueue, getSecret, instrumentation, tracer)
+        .source(durableQueue, getSecret, tracer)
         .runWith(Sink.ignore)
     }
   }

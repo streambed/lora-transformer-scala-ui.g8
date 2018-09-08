@@ -1,6 +1,5 @@
 package $organization;format="package"$.$deviceType;format="camel"$.transformer
 
-import java.nio.ByteBuffer
 import java.time.Instant
 
 import akka.actor.ActorSystem
@@ -8,7 +7,7 @@ import akka.stream.scaladsl.{ Sink, Source }
 import akka.stream.{ ActorMaterializer, Materializer }
 import akka.util.ByteString
 import $organization;format="package"$.$deviceType;format="camel"$.$deviceType;format="Camel"$Reading
-import com.github.huntc.lora.packet._
+import com.github.huntc.streambed.HexString.{ hexToBytes, hexToInt }
 import com.github.huntc.streambed.durablequeue.DurableQueue
 import com.github.huntc.streambed.identity.Principal
 import com.github.huntc.streambed.testkit.durablequeue.InMemoryQueue
@@ -45,43 +44,28 @@ object $deviceType;format="Camel"$TransformerTest extends TestSuite {
           )
         )
       }
-      val tracer          = NoopTracerFactory.create()
-      val instrumentation = new $deviceType;format="Camel"$Instrumentation(tracer)
+      val tracer = NoopTracerFactory.create()
 
       // Kick off the transformer
       $deviceType;format="Camel"$Transformer
-        .source(durableQueue, getSecret, instrumentation, tracer)
+        .source(durableQueue, getSecret, tracer)
         .runWith(Sink.ignore)
 
-      // Form a LoRaWAN payload and enqueue it as a Network Server would
-      import com.github.huntc.streambed.HexString._
-      val mic = MIC(ByteBuffer.wrap(hexToBytes("2b11ff0d")).getInt)
-      val fHDR = FHDR(
-        DevAddr(ByteBuffer.wrap(hexToBytes("49be7df1")).getInt),
-        FCtrl(ByteBuffer.wrap(hexToBytes("00")).get),
-        FCnt(ByteBuffer.wrap(hexToBytes("0002")).getShort),
-        FOpts(List.empty)
-      )
-      val fPort                 = FPort(ByteBuffer.wrap(hexToBytes("01")).get)
-      val unencryptedFrmPayload = FRMPayload(ByteBuffer.wrap(hexToBytes("025800a1")).array().toList) // FIXME: The actual bytes to be encoded into a domain object
-      val frmPayload =
-        FRMPayload(
-          unencryptedFrmPayload,
-          FRMPayload.encryptBlocksWithAppSKey(
-            AppSKey(hexToBytes(encryptionKey)),
-            FRMPayload.fCntUpBlocks(fHDR.devAddr,
-                                    fHDR.fCnt,
-                                    FRMPayload.k(unencryptedFrmPayload.underlying.length))
-          )
-        )
-      val unconfirmedDataUp = UnconfirmedDataUp(fHDR, Some(fPort), Some(frmPayload))
-
-      def passThruMic(mic: MIC)(msg: Array[Byte], msgSize: Int): MIC =
-        mic // Pass through is fine given that the Network Server has already done a MIC check and so it won't be done again by the transformer
-
-      val payload = PHYPayloadCodec.encode(unconfirmedDataUp, passThruMic(mic)(_, _))
-
-      val (_, _, nwkAddr) = fHDR.devAddr.nwkTypeIDAndAddr
+      /*
+       * Enqueue a LoRaWAN payload as a Network Server would. Uses the packet encoder utility to obtain
+       * these values i.e.:
+       *
+       * docker run --rm farmco/lora-packet-encoder:0.9.0 \
+       *   2B7E151628AED2A6ABF7158809CF4F3C \
+       *   49be7df1 \
+       *   2b11ff0d
+       *
+       * The first param is the AppSKey as hex, the second is the DevAddr as hex and the third
+       * is the payload as hex.
+       * FIXME: Change the AppSKey, DevAddr and payload to suit your device
+       */
+      val nwkAddr = hexToInt("01be7df1")
+      val payload = hexToBytes("40f17dbe49000200017e84fa392b11ff0d")
 
       Source
         .single(

@@ -36,7 +36,6 @@ lazy val transformer =
       libraryDependencies ++= Seq(
         library.chronicleQueue,
         library.loraControlPlane,
-        library.loraPacket,
         library.loraStreams,
         library.ioxSss,
         library.jaegerTracing,
@@ -77,12 +76,11 @@ lazy val library =
       val loraSdk    = "0.6.0"
       val scalaCheck = "1.14.0"
       val sprayJson  = "1.3.4"
-      val streambed  = "0.15.0"
+      val streambed  = "0.16.0"
       val utest      = "0.6.4"
     }
     val chronicleQueue   = "com.github.huntc" %% "chronicle-queue"    % Version.streambed
     val loraControlPlane = "com.github.huntc" %% "lora-control-plane" % Version.loraSdk
-    val loraPacket       = "com.github.huntc" %% "lora-packet"        % Version.loraSdk
     val loraStreams      = "com.github.huntc" %% "lora-streams"       % Version.loraSdk
     val ioxSss           = "com.github.huntc" %% "iox-sss"            % Version.streambed
     val jaegerTracing    = "com.github.huntc" %% "jaeger-tracing"     % Version.streambed
