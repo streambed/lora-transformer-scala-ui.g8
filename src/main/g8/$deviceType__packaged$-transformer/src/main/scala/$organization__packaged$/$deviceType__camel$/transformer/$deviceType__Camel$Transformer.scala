@@ -7,12 +7,12 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{ Flow, Source }
 import akka.util.ByteString
 import $organization;format="package"$.$deviceType;format="camel"$.{ $deviceType;format="Camel"$Reading, $deviceType;format="Camel"$ReadingJsonProtocol }
-import com.github.huntc.lora.streams.{ Streams => LoRaStreams }
-import com.github.huntc.streambed.UuidOps
-import com.github.huntc.streambed.durablequeue.DurableQueue
-import com.github.huntc.streambed.durablequeue.opentracing.Headers
-import com.github.huntc.streambed.identity.Principal
-import com.github.huntc.streambed.identity.streams.{ Streams => IdentityStreams }
+import com.cisco.streambed.UuidOps
+import com.cisco.streambed.durablequeue.DurableQueue
+import com.cisco.streambed.durablequeue.opentracing.Headers
+import com.cisco.streambed.identity.Principal
+import com.cisco.streambed.identity.streams.{ Streams => IdentityStreams }
+import com.cisco.streambed.lora.streams.{ Streams => LoRaStreams }
 import io.opentracing.{ References, Span, Tracer }
 import spray.json._
 

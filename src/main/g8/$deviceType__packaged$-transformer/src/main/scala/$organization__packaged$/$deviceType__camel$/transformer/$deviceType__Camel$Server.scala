@@ -1,10 +1,11 @@
 package $organization;format="package"$.$deviceType;format="camel"$.transformer
 
 import akka.stream.scaladsl.Sink
-import com.github.huntc.streambed.{ Application, ApplicationContext, ApplicationProcess }
-import com.github.huntc.streambed.durablequeue.chroniclequeue.DurableQueueProvider
-import com.github.huntc.streambed.identity.iox.SecretStoreProvider
-import com.github.huntc.streambed.tracing.jaeger.TracerConfig
+import com.cisco.streambed.{ Application, ApplicationContext, ApplicationProcess }
+import com.cisco.streambed.durablequeue.chroniclequeue.DurableQueueProvider
+import com.cisco.streambed.identity.iox.SecretStoreProvider
+import com.cisco.streambed.storage.fs.RawStorageProvider
+import com.cisco.streambed.tracing.jaeger.TracerConfig
 
 /**
   * Bootstraps our application and handles signals
@@ -22,7 +23,7 @@ object $deviceType;format="Camel"$ServerEntryPoints {
 /**
   * The $deviceType$ application
   */
-object $deviceType;format="Camel"$Server extends Application with DurableQueueProvider with SecretStoreProvider {
+object $deviceType;format="Camel"$Server extends Application with DurableQueueProvider with RawStorageProvider with SecretStoreProvider {
   /**
     * Main entry point for the transformer and filter.
     */

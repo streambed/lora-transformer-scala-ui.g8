@@ -4,13 +4,13 @@ import akka.NotUsed
 import akka.stream.scaladsl.{ Flow, Source }
 import akka.stream.{ ActorAttributes, Materializer, Supervision }
 import $organization;format="package"$.$deviceType;format="camel"$.$deviceType;format="Camel"$Reading
-import com.github.huntc.lora.controlplane.EndDeviceEvents
-import com.github.huntc.streambed.UuidOps
-import com.github.huntc.streambed.HexString
-import com.github.huntc.streambed.durablequeue.DurableQueue
-import com.github.huntc.streambed.durablequeue.opentracing.Headers
-import com.github.huntc.streambed.identity.Principal
-import com.github.huntc.streambed.identity.streams.Streams
+import com.cisco.streambed.UuidOps
+import com.cisco.streambed.HexString
+import com.cisco.streambed.durablequeue.DurableQueue
+import com.cisco.streambed.durablequeue.opentracing.Headers
+import com.cisco.streambed.identity.Principal
+import com.cisco.streambed.identity.streams.Streams
+import com.cisco.streambed.lora.controlplane.EndDeviceEvents
 import io.opentracing.{ References, Span, Tracer }
 import spray.json._
 
@@ -75,7 +75,7 @@ object $deviceType;format="Camel"$MetaFilter {
           // We only to publish position changes - other data could also be quite sensitive e.g. secrets, counters etc.
           import DefaultJsonProtocol._
           decryptedData.utf8String.toJson.asJsObject
-            .getFields("type") == EndDeviceEvents.EventJsonProtocol.PositionUpdatedFields
+            .getFields("type") == Seq(EndDeviceEvents.EventJsonProtocol.PositionUpdatedField)
       }
       .withAttributes(ActorAttributes.supervisionStrategy(Supervision.resumingDecider))
       .map {

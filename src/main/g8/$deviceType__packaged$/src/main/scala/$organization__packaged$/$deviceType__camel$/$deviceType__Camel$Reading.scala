@@ -10,9 +10,9 @@ import akka.NotUsed
 import akka.stream.javadsl.{ Flow => JFlow }
 import akka.stream.scaladsl.Flow
 import akka.stream.{ ActorAttributes, Supervision }
-import com.github.huntc.streambed.durablequeue.DurableQueue
-import com.github.huntc.streambed.identity.Principal
-import com.github.huntc.streambed.identity.streams.Streams
+import com.cisco.streambed.durablequeue.DurableQueue
+import com.cisco.streambed.identity.Principal
+import com.cisco.streambed.identity.streams.Streams
 import spray.json._
 
 import scala.compat.java8.FunctionConverters._

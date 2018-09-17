@@ -7,10 +7,10 @@ import akka.stream.scaladsl.{ Sink, Source }
 import akka.stream.{ ActorMaterializer, Materializer }
 import akka.util.ByteString
 import $organization;format="package"$.$deviceType;format="camel"$.$deviceType;format="Camel"$Reading
-import com.github.huntc.streambed.HexString.{ hexToBytes, hexToInt }
-import com.github.huntc.streambed.durablequeue.DurableQueue
-import com.github.huntc.streambed.identity.Principal
-import com.github.huntc.streambed.testkit.durablequeue.InMemoryQueue
+import com.cisco.streambed.HexString.{ hexToBytes, hexToInt }
+import com.cisco.streambed.durablequeue.DurableQueue
+import com.cisco.streambed.identity.Principal
+import com.cisco.streambed.testkit.durablequeue.InMemoryQueue
 import io.opentracing.noop.NoopTracerFactory
 
 import scala.concurrent.duration._

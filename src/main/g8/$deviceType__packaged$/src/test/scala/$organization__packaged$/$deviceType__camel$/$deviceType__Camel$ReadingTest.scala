@@ -7,10 +7,10 @@ import akka.actor.ActorSystem
 import akka.stream.scaladsl.{ Sink, Source }
 import akka.stream.{ ActorMaterializer, Materializer }
 import akka.util.ByteString
-import com.github.huntc.streambed.HexString
-import com.github.huntc.streambed.durablequeue.DurableQueue
-import com.github.huntc.streambed.identity.Principal
-import com.github.huntc.streambed.identity.streams.Streams
+import com.cisco.streambed.HexString
+import com.cisco.streambed.durablequeue.DurableQueue
+import com.cisco.streambed.identity.Principal
+import com.cisco.streambed.identity.streams.Streams
 import spray.json._
 import utest._
 
