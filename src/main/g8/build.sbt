@@ -35,6 +35,7 @@ lazy val transformer =
     .settings(
       libraryDependencies ++= Seq(
         library.chronicleQueue,
+        library.fs,
         library.loraControlPlane,
         library.loraStreams,
         library.ioxSss,
@@ -64,7 +65,7 @@ lazy val transformer =
 lazy val image =
   new {
     object Version {
-      val ioxLandlord = "0.15.0"
+      val ioxLandlord = library.Version.streambed
     }
 
     val ioxLandlord = s"farmco/iox-landlord:\${Version.ioxLandlord}"
@@ -73,22 +74,23 @@ lazy val image =
 lazy val library =
   new {
     object Version {
-      val loraSdk    = "0.6.0"
+      val loraSdk    = "0.10.1"
       val scalaCheck = "1.14.0"
       val sprayJson  = "1.3.4"
-      val streambed  = "0.16.0"
+      val streambed  = "0.19.4"
       val utest      = "0.6.4"
     }
-    val chronicleQueue   = "com.github.huntc" %% "chronicle-queue"    % Version.streambed
-    val loraControlPlane = "com.github.huntc" %% "lora-control-plane" % Version.loraSdk
-    val loraStreams      = "com.github.huntc" %% "lora-streams"       % Version.loraSdk
-    val ioxSss           = "com.github.huntc" %% "iox-sss"            % Version.streambed
-    val jaegerTracing    = "com.github.huntc" %% "jaeger-tracing"     % Version.streambed
-    val scalaCheck       = "org.scalacheck"   %% "scalacheck"         % Version.scalaCheck
-    val sprayJson        = "io.spray"         %% "spray-json"         % Version.sprayJson
-    val streambedCore    = "com.github.huntc" %% "streambed-core"     % Version.streambed
-    val streambedTestKit = "com.github.huntc" %% "streambed-testkit"  % Version.streambed
-    val utest            = "com.lihaoyi"      %% "utest"              % Version.utest
+    val chronicleQueue   = "com.cisco.streambed"      %% "chronicle-queue"    % Version.streambed
+    val fs               = "com.cisco.streambed"      %% "fs"                 % Version.streambed
+    val loraControlPlane = "com.cisco.streambed.lora" %% "lora-control-plane" % Version.loraSdk
+    val loraStreams      = "com.cisco.streambed.lora" %% "lora-streams"       % Version.loraSdk
+    val ioxSss           = "com.cisco.streambed"      %% "iox-sss"            % Version.streambed
+    val jaegerTracing    = "com.cisco.streambed"      %% "jaeger-tracing"     % Version.streambed
+    val scalaCheck       = "org.scalacheck"           %% "scalacheck"         % Version.scalaCheck
+    val sprayJson        = "io.spray"                 %% "spray-json"         % Version.sprayJson
+    val streambedCore    = "com.cisco.streambed"      %% "streambed-core"     % Version.streambed
+    val streambedTestKit = "com.cisco.streambed"      %% "streambed-testkit"  % Version.streambed
+    val utest            = "com.lihaoyi"              %% "utest"              % Version.utest
   }
 
 // *****************************************************************************
@@ -122,7 +124,7 @@ lazy val commonSettings =
     publishArtifact in (Compile, packageSrc) := false,  // Remove if these libraries are OSS
     testFrameworks += new TestFramework("utest.runner.Framework"),
     wartremoverWarnings in (Compile, compile) ++= Warts.unsafe,
-    resolvers += "farmco-repositories" at "https://farmco-repositories.bitbucket.io/jars/"
+    resolvers += "streambed-repositories" at "https://repositories.streambed.io/jars/"
 )
 
 lazy val gitSettings =
