@@ -7,7 +7,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: sbt-cache-1
+          key: sbt-cache-2
       - run:
           name: Compile & Test
           command: |
@@ -17,7 +17,7 @@ jobs:
               test:compile \
               test
       - save_cache:
-          key: sbt-cache-1
+          key: sbt-cache-2
           paths:
           - "~/.ivy2/cache"
           - "~/.sbt"
