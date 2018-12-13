@@ -116,6 +116,9 @@ object EndDeviceServiceTest extends TestSuite {
         )
 
         snapshotEvents ==> Seq(
+          EndDeviceEvents.PositionUpdated(1,
+            Instant.ofEpochSecond(0),
+            LatLng(-20, 20, None)) -> 4,
           EndDeviceEvents.VersionUpdated(1, 1) -> 4
         )
       }

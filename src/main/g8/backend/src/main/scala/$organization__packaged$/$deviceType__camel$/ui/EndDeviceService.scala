@@ -59,7 +59,7 @@ object EndDeviceService {
                       case e: EndDeviceEvents.Event =>
                         LatestEndDeviceEvents(
                           Some(offset),
-                          (e :: state.events.filterNot(_.nwkAddr == e.nwkAddr))
+                          (e :: state.events.filterNot(pe => pe.nwkAddr == e.nwkAddr && pe.getClass == e.getClass))
                             .take(maxSensors)) -> true
                     }
 
