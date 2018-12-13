@@ -72,7 +72,7 @@ object $deviceType;format="Camel"$MetaFilter {
       }
       .filter {
         case (decryptedData, _) =>
-          // We only to publish certain events - other data could also be quite sensitive e.g. secrets, counters etc.
+          // We only publish certain events - other data could also be quite sensitive e.g. secrets, counters etc.
           import DefaultJsonProtocol._
           decryptedData.utf8String.toJson.asJsObject
             .getFields("type")
