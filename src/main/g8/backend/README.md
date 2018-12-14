@@ -1,5 +1,15 @@
-# LoRaWAN Transformer
+# lora-transformer-ui/backend
 
-The repository provides a domain representation of a LoRaWAN device's observations, and the means of transforming LoRaWAN payloads into a normalized object. These normalized objects can then shared with other parts of the system. 
+For all running, debugging and testing, start the sandbox:
 
-Copyright (C) 2018 $organizationName$
+```
+sandbox | docker-compose -p xdp-sandbox -f - up
+```
+
+...and then run as per any Scala program. Given the use of the Streambed toolkit, your program will connect to the sandbox based services.
+
+To package:
+
+```
+sbt docker:publishLocal
+```
