@@ -1,9 +1,8 @@
 package $organization;format="package"$.$deviceType;format="camel"$.ui
 
-import akka.Done
 import akka.actor.ActorSystem
 import akka.stream.Materializer
-import akka.stream.scaladsl.Sink
+import akka.stream.scaladsl.{RestartSource, Sink}
 import $organization;format="package"$.$deviceType;format="camel"$.transformer._
 import com.cisco.streambed.durablequeue.remote.DurableQueueProvider
 import com.cisco.streambed.http.HttpServerConfig
@@ -12,7 +11,9 @@ import com.cisco.streambed.identity.iox.SecretStoreProvider
 import com.cisco.streambed.storage.fs.RawStorageProvider
 import com.cisco.streambed.tracing.jaeger.TracerConfig
 import com.cisco.streambed.{Application, ApplicationContext, ApplicationProcess}
+import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Success}
 
 /**
@@ -54,65 +55,66 @@ object $deviceType;format="Camel"$Server
       "$deviceType;format="norm"$.maximum-nr-of-sensors")
     val saveEvery = context.config.getLong(
       "$deviceType;format="norm"$.save-interval")
+    val minBackoff =
+      FiniteDuration(
+        context.config
+          .getDuration("$deviceType;format="norm"$.min-backoff")
+          .toMillis,
+        TimeUnit.MILLISECONDS)
+    val maxBackoff =
+      FiniteDuration(
+        context.config
+          .getDuration("$deviceType;format="norm"$.max-backoff")
+          .toMillis,
+        TimeUnit.MILLISECONDS)
+    val backoffRandomFactor =
+      context.config.getDouble(
+        "$deviceType;format="norm"$.backoff-random-factor")
 
     {
-      val _ = $deviceType;format="Camel"$MetaFilter
-        .source(context.durableQueue, context.getSecret, tracer)
+      val _ = RestartSource
+        .withBackoff(minBackoff, maxBackoff, backoffRandomFactor)(
+          () =>
+            $deviceType;format="Camel"$MetaFilter
+              .source(context.durableQueue, context.getSecret, tracer))
         .runWith(Sink.ignore)
-        .onComplete {
-          case Success(Done) => System.exit(0)
-          case Failure(_)    => System.exit(1)
-        }
     }
 
     {
-      val _ = $deviceType;format="Camel"$Transformer
-        .source(context.durableQueue, context.getSecret, tracer)
+      val _ = RestartSource
+        .withBackoff(minBackoff, maxBackoff, backoffRandomFactor)(
+          () =>
+            $deviceType;format="Camel"$Transformer
+              .source(context.durableQueue, context.getSecret, tracer))
         .runWith(Sink.ignore)
-        .onComplete {
-          case Success(Done) => System.exit(0)
-          case Failure(_)    => System.exit(2)
-        }
     }
 
     {
-      $deviceType;format="Camel"$Service
-        .latestReadings(context.durableQueue,
-                        context.getSecret,
-                        context.storage,
-                        finite = false,
-                        maxSensors,
-                        _ % saveEvery == 0)
+      val _ = RestartSource
+        .withBackoff(minBackoff, maxBackoff, backoffRandomFactor)(
+          () =>
+            $deviceType;format="Camel"$Service
+              .latestReadings(context.durableQueue,
+                              context.getSecret,
+                              context.storage,
+                              finite = false,
+                              maxSensors,
+                              _ % saveEvery == 0))
         .runWith(Sink.ignore)
-        .onComplete {
-          case Success(_) =>
-            System.exit(0)
-
-          case Failure(e) =>
-            context.system.log
-              .error(e, "$deviceType;format="Camel"$Service#latestReadings failed, exiting")
-            System.exit(1)
-        }
     }
 
     {
-      EndDeviceService
-        .events(context.durableQueue,
-                context.getSecret,
-                context.storage,
-                finite = false,
-                maxSensors,
-                _ % saveEvery == 0)
+      val _ = RestartSource
+        .withBackoff(minBackoff, maxBackoff, backoffRandomFactor)(
+          () =>
+            EndDeviceService
+              .events(context.durableQueue,
+                      context.getSecret,
+                      context.storage,
+                      finite = false,
+                      maxSensors,
+                      _ % saveEvery == 0))
         .runWith(Sink.ignore)
-        .onComplete {
-          case Success(_) =>
-            System.exit(0)
-
-          case Failure(e) =>
-            context.system.log
-              .error(e, "EndDeviceService#events failed, exiting")
-            System.exit(1)
-        }
     }
 
     {
