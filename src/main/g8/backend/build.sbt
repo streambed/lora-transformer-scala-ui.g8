@@ -35,7 +35,7 @@ lazy val root =
         )
       ),
       name := "$name;format="norm"$",
-      unmanagedResourceDirectories in Compile += baseDirectory.value / ".." / "frontend"
+      unmanagedResourceDirectories in Compile += baseDirectory.value / ".." / "frontend" / "dist"
     )
 
 // *****************************************************************************
