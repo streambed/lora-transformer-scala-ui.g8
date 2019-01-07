@@ -123,7 +123,7 @@ object $deviceType;format="Camel"$Server
         .onComplete {
           case Success(bs) =>
             bs.foreach { b =>
-              context.system.log.info("Server listening on {}", b.localAddress)
+              context.system.log.info("Server listening on {}", b)
             }
 
           case Failure(e) =>

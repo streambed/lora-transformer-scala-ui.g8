@@ -46,10 +46,10 @@ lazy val library =
   new {
     object Version {
       val akka       = "2.5.19"
-      val loraSdk    = "0.10.1"
+      val loraSdk    = "0.12.0"
       val scalaCheck = "1.14.0"
-      val sprayJson  = "1.3.4"
-      val streambed  = "0.24.4"
+      val sprayJson  = "1.3.5"
+      val streambed  = "0.24.8"
       val utest      = "0.6.4"
     }
     val akkaTestkit                       = "com.typesafe.akka"        %% "akka-testkit"       % Version.akka
@@ -74,7 +74,7 @@ lazy val library =
 
 lazy val settings =
   Seq(
-    scalaVersion := "2.12.7",
+    scalaVersion := "2.12.8",
     organization := "$organization;format="package"$",
     organizationName := "$organizationName$",
     startYear := Some(2018),
