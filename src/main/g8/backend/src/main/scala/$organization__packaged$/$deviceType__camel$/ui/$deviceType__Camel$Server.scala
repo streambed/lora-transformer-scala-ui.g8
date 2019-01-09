@@ -20,7 +20,7 @@ import scala.util.{Failure, Success}
  * Bootstraps our application and handles signals
  */
 object $deviceType;format="Camel"$ServerEntryPoints {
-  private val applicationProcess = ApplicationProcess($deviceType;format="Camel"$Server)
+  private lazy val applicationProcess = ApplicationProcess($deviceType;format="Camel"$Server)
 
   def main(args: Array[String]): Unit =
     applicationProcess.main(args)
