@@ -11,6 +11,7 @@ lazy val root =
     .settings(settings)
     .settings(
       libraryDependencies ++= Seq(
+        library.akkaHttpSprayJson,
         library.fs,
         library.loraControlPlane,
         library.loraStreams,
@@ -20,7 +21,6 @@ lazy val root =
         library.streambedCore,
         library.streambedDurableQueueRemoteClient,
         library.streambedHttp,
-        library.streambedIdentity,
         library.akkaTestkit      % Test,
         library.scalaCheck       % Test,
         library.streambedTestKit % Test,
@@ -46,21 +46,24 @@ lazy val library =
   new {
     object Version {
       val akka       = "2.5.19"
+      val akkaHttp   = "10.1.7"
       val loraSdk    = "0.12.0"
       val scalaCheck = "1.14.0"
       val sprayJson  = "1.3.5"
-      val streambed  = "0.24.8"
+      val streambed  = "0.27.0"
       val utest      = "0.6.4"
     }
-    val akkaTestkit                       = "com.typesafe.akka"        %% "akka-testkit"       % Version.akka
-    val fs                                = "com.cisco.streambed"      %% "fs"                 % Version.streambed
-    val loraControlPlane                  = "com.cisco.streambed.lora" %% "lora-control-plane" % Version.loraSdk
-    val loraStreams                       = "com.cisco.streambed.lora" %% "lora-streams"       % Version.loraSdk
-    val ioxSss                            = "com.cisco.streambed"      %% "iox-sss"            % Version.streambed
-    val jaegerTracing                     = "com.cisco.streambed"      %% "jaeger-tracing"     % Version.streambed
-    val scalaCheck                        = "org.scalacheck"           %% "scalacheck"         % Version.scalaCheck
-    val sprayJson                         = "io.spray"                 %% "spray-json"         % Version.sprayJson
-    val streambedCore                     = "com.cisco.streambed"      %% "streambed-core"     % Version.streambed
+
+    val akkaHttpSprayJson                 = "com.typesafe.akka"        %% "akka-http-spray-json"                  % Version.akkaHttp
+    val akkaTestkit                       = "com.typesafe.akka"        %% "akka-testkit"                          % Version.akka
+    val fs                                = "com.cisco.streambed"      %% "fs"                                    % Version.streambed
+    val loraControlPlane                  = "com.cisco.streambed.lora" %% "lora-control-plane"                    % Version.loraSdk
+    val loraStreams                       = "com.cisco.streambed.lora" %% "lora-streams"                          % Version.loraSdk
+    val ioxSss                            = "com.cisco.streambed"      %% "iox-sss"                               % Version.streambed
+    val jaegerTracing                     = "com.cisco.streambed"      %% "jaeger-tracing"                        % Version.streambed
+    val scalaCheck                        = "org.scalacheck"           %% "scalacheck"                            % Version.scalaCheck
+    val sprayJson                         = "io.spray"                 %% "spray-json"                            % Version.sprayJson
+    val streambedCore                     = "com.cisco.streambed"      %% "streambed-core"                        % Version.streambed
     val streambedDurableQueueRemoteClient = "com.cisco.streambed"      %% "streambed-durable-queue-remote-client" % Version.streambed
     val streambedHttp                     = "com.cisco.streambed"      %% "streambed-http"                        % Version.streambed
     val streambedIdentity                 = "com.cisco.streambed"      %% "streambed-identity"                    % Version.streambed
