@@ -10,6 +10,7 @@ import com.cisco.streambed.storage.StateCodec
 import java.time.Instant
 import scala.concurrent.{ExecutionContext, Future}
 import utest._
+import spray.json._
 
 object LatestReadingsTest extends TestSuite with TestKitBase {
   override implicit lazy val system: ActorSystem =
@@ -41,7 +42,7 @@ object LatestReadingsTest extends TestSuite with TestKitBase {
           )
         ),
         ByteString(
-          """{"offset":45,"readings":[{"time":"1970-01-01T00:00:00Z","nwkAddr":1,"temperature":5.5,"moisturePercentage":1.5},{"time":"1970-01-01T00:00:00Z","nwkAddr":2,"temperature":8.5,"moisturePercentage":2.5}]}""")
+          """{"offset":45,"readings":[{"time":"1970-01-01T00:00:00Z","nwkAddr":1,"temperature":5.5,"moisturePercentage":1.5},{"time":"1970-01-01T00:00:00Z","nwkAddr":2,"temperature":8.5,"moisturePercentage":2.5}]}""".parseJson.compactPrint)
       )
     }
   }

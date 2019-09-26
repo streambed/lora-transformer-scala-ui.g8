@@ -40,7 +40,7 @@ object $deviceType;format="Camel"$ServiceTest extends TestSuite {
       )
     }
 
-    val durableQueue = InMemoryQueue.queue()
+    val durableQueue = InMemoryQueue.queue("some-namespace")
 
     val storage = StorageOps.storage()
 

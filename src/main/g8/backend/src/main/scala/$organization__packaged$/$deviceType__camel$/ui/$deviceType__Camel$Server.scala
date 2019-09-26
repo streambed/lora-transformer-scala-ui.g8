@@ -4,12 +4,14 @@ import akka.actor.ActorSystem
 import akka.stream.Materializer
 import akka.stream.scaladsl.{RestartSource, Sink}
 import $organization;format="package"$.$deviceType;format="camel"$.transformer._
+import au.com.titanclass.streams.telemetry.{MetricsReporter, TracingReporter}
+import com.cisco.streambed.telemetry.{TelemetryReporter, TracerConfig}
+import com.codahale.metrics.MetricFilter
 import com.cisco.streambed.durablequeue.remote.DurableQueueProvider
 import com.cisco.streambed.http.HttpServerConfig
 import com.cisco.streambed.http.identity.UserIdentityService
 import com.cisco.streambed.identity.iox.SecretStoreProvider
 import com.cisco.streambed.storage.fs.RawStorageProvider
-import com.cisco.streambed.tracing.jaeger.TracerConfig
 import com.cisco.streambed.{Application, ApplicationContext, ApplicationProcess}
 import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext
@@ -48,7 +50,32 @@ object $deviceType;format="Camel"$Server
     implicit val mat: Materializer = context.mat
     implicit val system: ActorSystem = context.system
 
-    val tracer = TracerConfig.tracer(context.config)
+    val metricsReporter =
+      new MetricsReporter(applicationContext.metricRegistry,
+                          MetricFilter.ALL,
+                          TimeUnit.HOURS,
+                          TimeUnit.MILLISECONDS,
+                          Some(applicationContext.reportingExecutor))
+
+    metricsReporter.start(1, TimeUnit.MINUTES)
+
+    val tracingReporter = new TracingReporter(1)
+    val tracer = TracerConfig.tracer(applicationContext.config,
+                                     _.withReporter(tracingReporter))
+
+    {
+      val _ =
+        TelemetryReporter
+          .report(applicationContext.config,
+                  metricsReporter.source,
+                  tracingReporter.source)
+          .foreach { bs =>
+            bs.foreach { b =>
+              context.system.log.info("Telemetry listening on {}", b)
+            }
+          }
+    }
+
     val userIdentityService = UserIdentityService(context)(context.system)
 
     val maxSensors = context.config.getInt(
@@ -75,17 +102,8 @@ object $deviceType;format="Camel"$Server
       val _ = RestartSource
         .withBackoff(minBackoff, maxBackoff, backoffRandomFactor)(
           () =>
-            $deviceType;format="Camel"$MetaFilter
-              .source(context.durableQueue, context.getSecret, tracer))
-        .runWith(Sink.ignore)
-    }
-
-    {
-      val _ = RestartSource
-        .withBackoff(minBackoff, maxBackoff, backoffRandomFactor)(
-          () =>
             $deviceType;format="Camel"$Transformer
-              .source(context.durableQueue, context.getSecret, tracer))
+              .source(context.durableQueue, context.principal.getSecret, tracer))
         .runWith(Sink.ignore)
     }
 
@@ -95,7 +113,7 @@ object $deviceType;format="Camel"$Server
           () =>
             $deviceType;format="Camel"$Service
               .latestReadings(context.durableQueue,
-                              context.getSecret,
+                              context.principal.getSecret,
                               context.storage,
                               finite = false,
                               maxSensors,
@@ -109,7 +127,7 @@ object $deviceType;format="Camel"$Server
           () =>
             EndDeviceService
               .events(context.durableQueue,
-                      context.getSecret,
+                      context.principal.getSecret,
                       context.storage,
                       finite = false,
                       maxSensors,

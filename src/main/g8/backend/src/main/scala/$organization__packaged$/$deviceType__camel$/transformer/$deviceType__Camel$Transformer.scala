@@ -5,7 +5,7 @@ import java.time.Instant
 
 import akka.NotUsed
 import akka.stream.Materializer
-import akka.stream.scaladsl.{ Flow, Source }
+import akka.stream.scaladsl.Source
 import com.cisco.streambed.UuidOps
 import com.cisco.streambed.durablequeue.DurableQueue
 import com.cisco.streambed.durablequeue.opentracing.Headers
@@ -37,11 +37,20 @@ object $deviceType;format="Camel"$Transformer {
       implicit mat: Materializer
   ): Source[Span, NotUsed] = {
     import mat.executionContext
-    val transform = Flow[DurableQueue.Event]
+    val topic = $deviceType;format="Camel"$DataUpMacPayloadTopic
+    val id = UuidOps.v5($deviceType;format="Camel"$Transformer.getClass)
+    Source
+      .fromFuture(durableQueue.offset(topic, id))
+      .flatMapConcat { offset =>
+        durableQueue
+          .source(topic, offset, finite = false)
+          .dropWhile(r => offset.contains(r.offset))
+      }
       .named("$deviceType;format="norm"$-transformer")
       .log("$deviceType;format="norm"$-transformer", identity)
-      .map { case DurableQueue.Received(_, data, _, headers, _) => data -> headers }
-      .map { case (data, headers) => data -> Headers.spanContext(headers, tracer) }
+      .map { received =>
+        received -> Headers.spanContext(received.headers, tracer)
+      }
       .map {
         case (received, spanContext) =>
           val span = {
@@ -56,24 +65,19 @@ object $deviceType;format="Camel"$Transformer {
               scope.close()
             }
           }
-          received -> span
+          received.data -> (received, span)
       }
       .via(LoRaStreams.dataUpDecoder(getSecret))
       .map {
-        case ((nwkAddr, payload), span) =>
+        case ((nwkAddr, _, payload), carry) =>
           ($deviceType;format="Camel"$Reading(Instant.now(), nwkAddr, payload.toArray),
-           span)
+           carry)
       }
-      .collect { case (Some(reading), span) => (reading, span) }
+      .collect { case (Some(reading), carry) => (reading, carry) }
       .via($deviceType;format="Camel"$Reading.appender(getSecret))
       .via(durableQueue.flow)
-      .collect { case DurableQueue.CommandReply(DurableQueue.SendAck, Some(span)) => span }
+      .collect { case DurableQueue.CommandReply(DurableQueue.SendAck, Some(carry)) => carry }
+      .via(durableQueue.commit(id))
       .wireTap(span => tracer.scopeManager().activate(span, true).close())
-    durableQueue
-      .resumableSource(
-        $deviceType;format="Camel"$DataUpMacPayloadTopic,
-        UuidOps.v5($deviceType;format="Camel"$MetaFilter.getClass),
-        transform
-      )
   }
 }
