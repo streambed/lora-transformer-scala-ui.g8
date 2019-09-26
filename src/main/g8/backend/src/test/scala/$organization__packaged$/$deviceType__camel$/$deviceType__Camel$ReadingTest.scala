@@ -2,15 +2,13 @@ package $organization;format="package"$.$deviceType;format="camel"$
 
 import java.time.Instant
 
-import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.scaladsl.{ Sink, Source }
 import akka.stream.{ ActorMaterializer, Materializer }
 import akka.util.ByteString
 import com.cisco.streambed.HexString
 import com.cisco.streambed.durablequeue.DurableQueue
-import com.cisco.streambed.identity.Principal
-import com.cisco.streambed.identity.streams.Streams
+import com.cisco.streambed.identity.{Crypto, Principal}
 import spray.json._
 import utest._
 
@@ -74,17 +72,19 @@ object $deviceType;format="Camel"$ReadingTest extends TestSuite {
           .single(
             s"""{"time":"1970-01-01T00:00:00Z","nwkAddr":1,"temperature":\$temp,"moisturePercentage":\$moisture}"""
           )
-          .map { data =>
-            ((getSecret($deviceType;format="Camel"$Reading.$deviceType;format="Camel"$Key), ByteString(data)), NotUsed)
+          .mapAsync(1) { decryptedData =>
+            Crypto
+              .encrypt(getSecret($deviceType;format="Camel"$Reading.$deviceType;format="Camel"$Key), ByteString(decryptedData))
+              .collect {
+                case Right(bytes) => bytes
+              }
           }
-          .via(Streams.encrypter)
-          .map {
-            case (encryptedData, _) =>
-              DurableQueue.Received(nwkAddr,
-                                    encryptedData,
-                                    0,
-                                    DurableQueue.EmptyHeaders,
-                                    $deviceType;format="Camel"$Reading.$deviceType;format="Camel"$DataUpJsonTopic)
+          .map { encryptedData =>
+            DurableQueue.Received(nwkAddr,
+                                  encryptedData,
+                                  0,
+                                  DurableQueue.EmptyHeaders,
+                                  $deviceType;format="Camel"$Reading.$deviceType;format="Camel"$DataUpJsonTopic)
           }
           .via($deviceType;format="Camel"$Reading.tailer(getSecret))
           .runWith(Sink.head)

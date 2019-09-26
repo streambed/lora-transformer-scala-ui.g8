@@ -9,11 +9,9 @@ import java.util.function
 import akka.NotUsed
 import akka.stream.javadsl.{ Flow => JFlow }
 import akka.stream.scaladsl.Flow
-import akka.stream.{ ActorAttributes, Supervision }
 import akka.util.ByteString
 import com.cisco.streambed.durablequeue.DurableQueue
-import com.cisco.streambed.identity.Principal
-import com.cisco.streambed.identity.streams.Streams
+import com.cisco.streambed.identity.{Crypto, Principal}
 import spray.json._
 
 import scala.compat.java8.FunctionConverters._
@@ -77,19 +75,27 @@ object $deviceType;format="Camel"$Reading {
       implicit ec: ExecutionContext
   ): Flow[DurableQueue.Received, ($deviceType;format="Camel"$Reading, Long), NotUsed] =
     Flow[DurableQueue.Received]
-      .map {
+      .mapAsync(1) {
         case DurableQueue.Received(_, encryptedData, o, _, _) =>
-          ((getSecret($deviceType;format="Camel"$Key), encryptedData), o)
+          Crypto
+            .decrypt(getSecret($deviceType;format="Camel"$Key), encryptedData)
+            .filter(!_.left.exists(_ == Principal.Unauthenticated))
+            .map(_ -> o)
       }
-      .via(Streams.decrypter)
-      .map {
-        case (data, o) =>
-          import $deviceType;format="Camel"$ReadingJsonProtocol._
-          (data.utf8String.parseJson.convertTo[$deviceType;format="Camel"$Reading], o)
+      .collect {
+        case (Right(data), o) =>
+          try {
+            import $deviceType;format="Camel"$ReadingJsonProtocol._
+            Some((data.utf8String.parseJson.convertTo[$deviceType;format="Camel"$Reading], o))
+          } catch {
+            case _: DeserializationException | _: JsonParser.ParsingException |
+                _: NumberFormatException =>
+              None
+          }
       }
-      .withAttributes(
-        ActorAttributes.supervisionStrategy(Supervision.resumingDecider)
-      )
+      .collect {
+        case Some(e) => e
+      }
 
   /**
     * Conveniently tail, decrypt and decode readings. Yields the reading and its offset.
@@ -118,21 +124,19 @@ object $deviceType;format="Camel"$Reading {
 
           (reading.nwkAddr, reading.toJson.compactPrint, carry)
       }
-      .map {
+      .mapAsync(1) {
         case (nwkAddr, decryptedData, carry) =>
-          ((getSecret($deviceType;format="Camel"$Key), ByteString(decryptedData)),
-           (nwkAddr, carry))
+          Crypto
+            .encrypt(getSecret($deviceType;format="Camel"$Key), ByteString(decryptedData))
+            .collect {
+              case Right(bytes) =>
+                DurableQueue.CommandRequest(
+                  DurableQueue.Send(nwkAddr, bytes, $deviceType;format="Camel"$DataUpJsonTopic),
+                  carry
+                )
+            }
       }
-      .via(Streams.encrypter)
-      .map {
-        case (bytes, (nwkAddr, carry)) =>
-          DurableQueue.CommandRequest(
-            DurableQueue.Send(nwkAddr, bytes, $deviceType;format="Camel"$DataUpJsonTopic),
-            carry
-          )
-      }
-  
-  
+
   /**
     * A convenience function for encoding `$deviceType;format="Camel"$Reading` instances, encrypting them and then
     * publishing to a queue.

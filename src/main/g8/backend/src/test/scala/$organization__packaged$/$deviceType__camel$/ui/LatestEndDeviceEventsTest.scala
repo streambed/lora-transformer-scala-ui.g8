@@ -34,8 +34,7 @@ object LatestEndDeviceEventsTest extends TestSuite with TestKitBase {
     'encodeDecode - {
       'one - testStateCodec(
         LatestEndDeviceEvents,
-        LatestEndDeviceEvents(None, List.empty),
-        ByteString("""{"events":[]}""")
+        LatestEndDeviceEvents(None, List.empty)
       )
 
       'two - testStateCodec(
@@ -46,14 +45,12 @@ object LatestEndDeviceEventsTest extends TestSuite with TestKitBase {
             NwkAddrUpdated(1, DevEUI(1)),
             PositionUpdated(1, Instant.ofEpochSecond(0), LatLng(-10, 10, None))
           )
-        ),
-        ByteString(
-          """{"offset":45,"events":[{"nwkAddr":1,"devEUI":1,"type":"NwkAddrUpdated"},{"nwkAddr":1,"time":"1970-01-01T00:00:00Z","position":{"lat":-10,"lng":10},"type":"PositionUpdated"}]}""")
+        )
       )
     }
   }
 
-  def testStateCodec[T](codec: StateCodec[T], value: T, expected: ByteString)(
+  def testStateCodec[T](codec: StateCodec[T], value: T)(
       implicit ec: ExecutionContext,
       mat: Materializer): Future[Unit] =
     for {
@@ -61,7 +58,6 @@ object LatestEndDeviceEventsTest extends TestSuite with TestKitBase {
       encodedData <- encodedSource.runFold(ByteString.empty)(_ ++ _)
       decoded <- codec.decode(Source.single(encodedData))
     } yield {
-      encodedData ==> expected
       decoded ==> value
     }
 }

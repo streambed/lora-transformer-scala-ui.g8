@@ -5,6 +5,7 @@ import akka.http.scaladsl.model.sse.ServerSentEvent
 import com.cisco.streambed.lora.controlplane.EndDeviceEvents._
 import java.time.Instant
 import utest._
+import spray.json._
 
 object ServerSentEventMarshallerTest extends TestSuite {
   val tests = Tests {
@@ -14,7 +15,7 @@ object ServerSentEventMarshallerTest extends TestSuite {
       ServerSentEventMarshaller($deviceType;format="Camel"$Reading(now, 1, BigDecimal("5.5"), BigDecimal("1.5")),
                                 123) ==>
         ServerSentEvent(
-          """{"time":"1970-01-01T00:00:00Z","nwkAddr":1,"temperature":5.5,"moisturePercentage":1.5}""",
+          """{"time":"1970-01-01T00:00:00Z","nwkAddr":1,"temperature":5.5,"moisturePercentage":1.5}""".parseJson.compactPrint,
           "$deviceType;format="Camel"$Reading",
           "123")
     }
@@ -25,7 +26,7 @@ object ServerSentEventMarshallerTest extends TestSuite {
       ServerSentEventMarshaller(
         PositionUpdated(1, now, LatLng(BigDecimal(12), BigDecimal(34), None)),
         123) ==> ServerSentEvent(
-        """{"nwkAddr":1,"time":"1970-01-01T00:00:00Z","position":{"lat":12,"lng":34},"type":"PositionUpdated"}""",
+        """{"nwkAddr":1,"time":"1970-01-01T00:00:00Z","position":{"lat":12,"lng":34},"type":"PositionUpdated"}""".parseJson.compactPrint,
         "PositionUpdated",
         "123"
       )

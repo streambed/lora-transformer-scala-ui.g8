@@ -33,7 +33,7 @@ object $deviceType;format="Camel"$TransformerTest extends TestSuite {
 
   val tests = Tests {
     'transform - {
-      val durableQueue  = InMemoryQueue.queue()
+      val durableQueue  = InMemoryQueue.queue("some-namespace")
       val encryptionKey = "2B7E151628AED2A6ABF7158809CF4F3C" // Used for encrypting/decrypting everything
       val getSecret: Principal.GetSecret = { _ =>
         Future.successful(
